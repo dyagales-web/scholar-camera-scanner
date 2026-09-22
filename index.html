@@ -2,14 +2,16 @@
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <title>Scholar Attendance Camera</title>
+  <title>Scholar Attendance</title>
 
+  <!-- QR DECODER -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
   <style>
@@ -18,12 +20,19 @@
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
-      padding: 15px;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
       background: #f4f7fb;
       font-family: Arial, Helvetica, sans-serif;
       color: #111827;
+    }
+
+    body {
+      padding: 15px;
     }
 
     .container {
@@ -33,28 +42,29 @@
     }
 
     .header {
-      background: white;
-      border-radius: 18px;
-      padding: 22px;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px 18px;
       text-align: center;
       box-shadow: 0 4px 18px rgba(0,0,0,.08);
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
 
     .header h1 {
       margin: 0;
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
     }
 
     .header p {
-      margin: 7px 0 0;
+      margin: 8px 0 0;
+      font-size: 17px;
       color: #6b7280;
     }
 
     .camera-card {
-      background: white;
-      border-radius: 18px;
+      background: #ffffff;
+      border-radius: 20px;
       padding: 15px;
       box-shadow: 0 4px 18px rgba(0,0,0,.08);
     }
@@ -62,9 +72,9 @@
     .camera-wrapper {
       position: relative;
       width: 100%;
-      aspect-ratio: 1 / 1;
-      background: #111827;
-      border-radius: 15px;
+      aspect-ratio: 3 / 4;
+      background: #080c16;
+      border-radius: 16px;
       overflow: hidden;
     }
 
@@ -72,64 +82,112 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
 
     #canvas {
       display: none;
     }
 
+    /*
+      QR GUIDE
+    */
+
     .scan-frame {
       position: absolute;
-      width: 65%;
-      height: 65%;
-      left: 17.5%;
-      top: 17.5%;
-      border: 3px solid white;
+      width: 72%;
+      aspect-ratio: 1 / 1;
+      left: 14%;
+      top: 18%;
+
+      border: 3px solid #ffffff;
       border-radius: 18px;
+
       pointer-events: none;
+
+      box-shadow:
+        0 0 0 9999px rgba(0,0,0,.28);
+    }
+
+    .corner {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: #ffffff;
+      border-style: solid;
+    }
+
+    .corner.tl {
+      left: -3px;
+      top: -3px;
+      border-width: 5px 0 0 5px;
+      border-radius: 10px 0 0 0;
+    }
+
+    .corner.tr {
+      right: -3px;
+      top: -3px;
+      border-width: 5px 5px 0 0;
+      border-radius: 0 10px 0 0;
+    }
+
+    .corner.bl {
+      left: -3px;
+      bottom: -3px;
+      border-width: 0 0 5px 5px;
+      border-radius: 0 0 0 10px;
+    }
+
+    .corner.br {
+      right: -3px;
+      bottom: -3px;
+      border-width: 0 5px 5px 0;
+      border-radius: 0 0 10px 0;
     }
 
     .scan-line {
       position: absolute;
-      left: 5%;
-      width: 90%;
+      left: 4%;
+      width: 92%;
       height: 2px;
-      background: white;
-      animation: scan 2s linear infinite;
+      background: #ffffff;
+      box-shadow: 0 0 6px rgba(255,255,255,.8);
+      animation: scanLine 1.8s linear infinite;
     }
 
-    @keyframes scan {
+    @keyframes scanLine {
 
       0% {
-        top: 10%;
+        top: 5%;
       }
 
       50% {
-        top: 90%;
+        top: 95%;
       }
 
       100% {
-        top: 10%;
+        top: 5%;
       }
 
     }
 
     .status {
       text-align: center;
-      padding: 15px 5px;
-      font-size: 15px;
+      padding: 15px 5px 10px;
       color: #6b7280;
+      font-size: 15px;
+      line-height: 1.4;
     }
 
     button {
       width: 100%;
-      border: none;
-      border-radius: 12px;
-      padding: 15px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
+      border: 0;
+      border-radius: 13px;
+      padding: 16px;
       margin-top: 8px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
     }
 
     #startButton {
@@ -144,8 +202,8 @@
 
     .result {
       margin-top: 15px;
+      border-radius: 15px;
       padding: 18px;
-      border-radius: 14px;
       text-align: center;
       font-weight: 700;
     }
@@ -156,7 +214,13 @@
       color: #065f46;
     }
 
-    .error {
+    .duplicate {
+      background: #fffbeb;
+      border: 2px solid #f59e0b;
+      color: #92400e;
+    }
+
+    .invalid {
       background: #fef2f2;
       border: 2px solid #ef4444;
       color: #991b1b;
@@ -168,9 +232,25 @@
       color: #1e40af;
     }
 
-    .name {
+    .error {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .icon {
+      font-size: 34px;
+      margin-bottom: 6px;
+    }
+
+    .result-title {
       font-size: 20px;
-      margin-top: 6px;
+      font-weight: 800;
+    }
+
+    .result-name {
+      font-size: 19px;
+      margin-top: 7px;
     }
 
     .details {
@@ -183,14 +263,19 @@
 
 </head>
 
+
 <body>
 
 <div class="container">
 
   <div class="header">
+
     <h1>📋 Scholar Attendance</h1>
+
     <p>📷 Phone Camera QR Scanner</p>
+
   </div>
+
 
   <div class="camera-card">
 
@@ -205,27 +290,47 @@
 
       <canvas id="canvas"></canvas>
 
+
       <div class="scan-frame">
+
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
         <div class="scan-line"></div>
+
       </div>
 
     </div>
 
-    <div id="cameraStatus" class="status">
+
+    <div
+      id="cameraStatus"
+      class="status">
+
       Tap START CAMERA to begin.
+
     </div>
+
 
     <button
       id="startButton"
       onclick="startCamera()">
+
       ▶ START CAMERA
+
     </button>
+
 
     <button
       id="stopButton"
       onclick="stopCamera()">
+
       ■ STOP CAMERA
+
     </button>
+
 
     <div id="result"></div>
 
@@ -236,464 +341,717 @@
 
 <script>
 
-  // ==========================================================
-  // YOUR APPS SCRIPT WEB APP URL
-  // ==========================================================
 
-  const APPS_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbyi6Cs53LZ-HajMXYFdF4R-bWAR2yfXV5vbhd9PgTm-dTGCMYSrp5dkDFNHyH-WHz9T/exec";
+/* ============================================================
+   APPS SCRIPT URL
+   ============================================================ */
+
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyi6Cs53LZ-HajMXYFdF4R-bWAR2yfXV5vbhd9PgTm-dTGCMYSrp5dkDFNHyH-WHz9T/exec";
 
 
-  // ==========================================================
-  // VARIABLES
-  // ==========================================================
+/* ============================================================
+   VARIABLES
+   ============================================================ */
 
-  let video =
-    document.getElementById("video");
+const video =
+  document.getElementById("video");
 
-  let canvas =
-    document.getElementById("canvas");
+const canvas =
+  document.getElementById("canvas");
 
-  let context =
-    canvas.getContext("2d", {
+const context =
+  canvas.getContext(
+    "2d",
+    {
       willReadFrequently: true
-    });
-
-  let stream = null;
-
-  let scanning = false;
-
-  let processing = false;
-
-  let lastCode = "";
-
-  let lastScanTime = 0;
-
-
-  // ==========================================================
-  // START CAMERA
-  // ==========================================================
-
-  async function startCamera() {
-
-    if (scanning) {
-      return;
     }
-
-    setStatus(
-      "Requesting camera permission..."
-    );
-
-    try {
-
-      if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-      ) {
-
-        throw new Error(
-          "Camera access is not supported by this browser."
-        );
-
-      }
-
-      stream =
-        await navigator.mediaDevices.getUserMedia({
-
-          video: {
-            facingMode: {
-              ideal: "environment"
-            },
-            width: {
-              ideal: 1280
-            },
-            height: {
-              ideal: 720
-            }
-          },
-
-          audio: false
-
-        });
+  );
 
 
-      video.srcObject = stream;
+let stream = null;
 
-      await video.play();
+let scanning = false;
 
-      scanning = true;
+let processing = false;
 
-      setStatus(
-        "Camera active. Point the camera at a Scholar QR Code."
-      );
+let animationFrame = null;
 
-      scanFrame();
+let lastScannedCode = "";
 
-    }
+let lastScannedTime = 0;
 
-    catch (error) {
 
-      console.error(error);
+/* ============================================================
+   START CAMERA
+   ============================================================ */
 
-      if (error.name === "NotAllowedError") {
+async function startCamera() {
 
-        setStatus(
-          "Camera permission was denied. Please allow camera access and try again."
-        );
-
-      }
-
-      else if (error.name === "NotFoundError") {
-
-        setStatus(
-          "No camera was found."
-        );
-
-      }
-
-      else {
-
-        setStatus(
-          "Camera error: " +
-          error.message
-        );
-
-      }
-
-    }
-
+  if (scanning) {
+    return;
   }
 
+  clearResult();
 
-  // ==========================================================
-  // STOP CAMERA
-  // ==========================================================
-
-  function stopCamera() {
-
-    scanning = false;
-
-    if (stream) {
-
-      stream.getTracks().forEach(
-        track => track.stop()
-      );
-
-      stream = null;
-
-    }
-
-    video.srcObject = null;
-
-    setStatus(
-      "Camera stopped."
-    );
-
-  }
+  setStatus(
+    "Requesting camera permission..."
+  );
 
 
-  // ==========================================================
-  // SCAN CAMERA
-  // ==========================================================
-
-  function scanFrame() {
-
-    if (!scanning) {
-      return;
-    }
+  try {
 
     if (
-      video.readyState >= 2 &&
-      video.videoWidth > 0 &&
-      video.videoHeight > 0
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
     ) {
 
-      canvas.width =
-        video.videoWidth;
-
-      canvas.height =
-        video.videoHeight;
-
-      context.drawImage(
-        video,
-        0,
-        0,
-        canvas.width,
-        canvas.height
+      throw new Error(
+        "Camera access is not supported by this browser."
       );
 
-      const imageData =
-        context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-
-
-      const qr =
-        jsQR(
-          imageData.data,
-          imageData.width,
-          imageData.height,
-          {
-            inversionAttempts: "attemptBoth"
-          }
-        );
-
-
-      if (qr && qr.data) {
-
-        const scholarId =
-          String(qr.data).trim();
-
-        const now =
-          Date.now();
-
-
-        if (
-          scholarId &&
-          (
-            scholarId !== lastCode ||
-            now - lastScanTime > 3000
-          )
-        ) {
-
-          lastCode = scholarId;
-
-          lastScanTime = now;
-
-          processScholar(
-            scholarId
-          );
-
-        }
-
-      }
-
     }
-
-    requestAnimationFrame(
-      scanFrame
-    );
-
-  }
-
-
-  // ==========================================================
-  // SEND SCHOLAR ID TO APPS SCRIPT
-  // ==========================================================
-
-  function processScholar(
-    scholarId
-  ) {
-
-    if (processing) {
-      return;
-    }
-
-    processing = true;
-
-    setResult(
-      "processing",
-      "⏳",
-      "Recording attendance...",
-      scholarId
-    );
 
 
     /*
       IMPORTANT:
-
-      We use a hidden form submission rather than fetch().
-      This avoids browser CORS restrictions when sending
-      the scanned ID to Apps Script.
+      Ask specifically for the rear camera.
     */
 
-    const form =
-      document.createElement("form");
+    stream =
+      await navigator.mediaDevices.getUserMedia({
 
-    form.method = "POST";
+        video: {
 
-    form.action =
-      APPS_SCRIPT_URL;
+          facingMode: {
+            exact: "environment"
+          },
 
-    form.target =
-      "attendanceFrame";
+          width: {
+            ideal: 1920
+          },
 
-    form.style.display =
-      "none";
+          height: {
+            ideal: 1080
+          }
 
+        },
 
-    const input =
-      document.createElement("input");
+        audio: false
 
-    input.type = "hidden";
-
-    input.name =
-      "scholarId";
-
-    input.value =
-      scholarId;
+      });
 
 
-    form.appendChild(input);
-
-    document.body.appendChild(form);
+    video.srcObject = stream;
 
 
-    form.submit();
+    await video.play();
+
+
+    scanning = true;
+
+
+    setStatus(
+      "Camera active. Place the QR code inside the box."
+    );
+
+
+    scanLoop();
+
+  }
+
+
+  catch (error) {
+
+    console.error(
+      "Camera error:",
+      error
+    );
 
 
     /*
-      The Apps Script server receives the Scholar ID.
-
-      We give the server a moment to process it,
-      then prepare for the next QR scan.
+      Some phones may reject exact environment.
+      Try again with ideal environment.
     */
 
-    setTimeout(
-      function() {
+    if (
+      error.name === "OverconstrainedError"
+    ) {
 
-        processing = false;
+      try {
 
-        setResult(
-          "success",
-          "✓",
-          "Attendance submitted",
-          scholarId
+        stream =
+          await navigator.mediaDevices.getUserMedia({
+
+            video: {
+              facingMode: {
+                ideal: "environment"
+              }
+            },
+
+            audio: false
+
+          });
+
+
+        video.srcObject =
+          stream;
+
+        await video.play();
+
+        scanning = true;
+
+        setStatus(
+          "Camera active. Place the QR code inside the box."
         );
 
-        setTimeout(
-          function() {
+        scanLoop();
 
-            clearResult();
+        return;
 
-          },
-          1200
+      }
+
+      catch (secondError) {
+
+        console.error(
+          secondError
         );
 
-      },
-      900
+      }
+
+    }
+
+
+    if (
+      error.name === "NotAllowedError"
+    ) {
+
+      setStatus(
+        "Camera permission was denied."
+      );
+
+    }
+
+    else {
+
+      setStatus(
+        "Camera error: " +
+        error.message
+      );
+
+    }
+
+  }
+
+}
+
+
+/* ============================================================
+   STOP CAMERA
+   ============================================================ */
+
+function stopCamera() {
+
+  scanning = false;
+
+
+  if (animationFrame) {
+
+    cancelAnimationFrame(
+      animationFrame
     );
 
-
-    setTimeout(
-      function() {
-
-        form.remove();
-
-      },
-      3000
-    );
+    animationFrame = null;
 
   }
 
 
-  // ==========================================================
-  // STATUS
-  // ==========================================================
+  if (stream) {
 
-  function setStatus(
-    message
+    stream
+      .getTracks()
+      .forEach(
+        function(track) {
+          track.stop();
+        }
+      );
+
+    stream = null;
+
+  }
+
+
+  video.srcObject = null;
+
+
+  setStatus(
+    "Camera stopped."
+  );
+
+}
+
+
+/* ============================================================
+   MAIN SCAN LOOP
+   ============================================================ */
+
+function scanLoop() {
+
+  if (!scanning) {
+    return;
+  }
+
+
+  if (
+    video.readyState >= 2 &&
+    video.videoWidth > 0 &&
+    video.videoHeight > 0
   ) {
 
-    document
-      .getElementById(
-        "cameraStatus"
-      )
-      .textContent =
-      message;
+    /*
+      We scan the central portion first.
+      This matches the white QR guide.
+    */
+
+    const videoWidth =
+      video.videoWidth;
+
+    const videoHeight =
+      video.videoHeight;
+
+
+    const cropSize =
+      Math.min(
+        videoWidth,
+        videoHeight
+      ) * 0.78;
+
+
+    const cropX =
+      (videoWidth - cropSize) / 2;
+
+
+    const cropY =
+      (videoHeight - cropSize) / 2;
+
+
+    /*
+      Use a sufficiently large canvas.
+    */
+
+    const size =
+      Math.min(
+        1000,
+        Math.max(
+          700,
+          Math.floor(cropSize)
+        )
+      );
+
+
+    canvas.width = size;
+    canvas.height = size;
+
+
+    context.drawImage(
+
+      video,
+
+      cropX,
+      cropY,
+      cropSize,
+      cropSize,
+
+      0,
+      0,
+      size,
+      size
+
+    );
+
+
+    const imageData =
+      context.getImageData(
+        0,
+        0,
+        size,
+        size
+      );
+
+
+    /*
+      jsQR
+    */
+
+    if (
+      typeof jsQR === "function"
+    ) {
+
+      const code =
+        jsQR(
+
+          imageData.data,
+
+          imageData.width,
+
+          imageData.height,
+
+          {
+            inversionAttempts:
+              "attemptBoth"
+          }
+
+        );
+
+
+      if (
+        code &&
+        code.data
+      ) {
+
+        handleDetectedQR(
+          code.data
+        );
+
+      }
+
+    }
 
   }
 
 
-  // ==========================================================
-  // RESULT
-  // ==========================================================
+  /*
+    Scan continuously.
+  */
 
-  function setResult(
-    type,
-    icon,
-    message,
+  animationFrame =
+    requestAnimationFrame(
+      scanLoop
+    );
+
+}
+
+
+/* ============================================================
+   QR DETECTED
+   ============================================================ */
+
+function handleDetectedQR(
+  data
+) {
+
+  if (processing) {
+    return;
+  }
+
+
+  const scholarId =
+    String(data || "")
+      .trim();
+
+
+  if (!scholarId) {
+    return;
+  }
+
+
+  const now =
+    Date.now();
+
+
+  /*
+    Prevent repeated detection.
+  */
+
+  if (
+    scholarId === lastScannedCode &&
+    now - lastScannedTime < 3000
+  ) {
+
+    return;
+
+  }
+
+
+  lastScannedCode =
+    scholarId;
+
+  lastScannedTime =
+    now;
+
+
+  console.log(
+    "QR DETECTED:",
     scholarId
-  ) {
+  );
 
-    const result =
-      document.getElementById(
-        "result"
-      );
 
-    result.className =
-      "result " + type;
+  processScholar(
+    scholarId
+  );
 
-    result.innerHTML =
+}
 
-      "<div style='font-size:32px'>" +
-      icon +
-      "</div>" +
 
-      "<div>" +
-      escapeHtml(message) +
-      "</div>" +
+/* ============================================================
+   SEND TO APPS SCRIPT
+   ============================================================ */
 
-      (
+function processScholar(
+  scholarId
+) {
+
+  if (processing) {
+    return;
+  }
+
+
+  processing = true;
+
+
+  setResult(
+    "processing",
+    "⏳",
+    "Reading Scholar QR...",
+    scholarId
+  );
+
+
+  /*
+    Send using hidden form.
+  */
+
+  const form =
+    document.createElement(
+      "form"
+    );
+
+
+  form.method =
+    "POST";
+
+
+  form.action =
+    APPS_SCRIPT_URL;
+
+
+  form.target =
+    "attendanceFrame";
+
+
+  form.style.display =
+    "none";
+
+
+  const input =
+    document.createElement(
+      "input"
+    );
+
+
+  input.type =
+    "hidden";
+
+
+  input.name =
+    "scholarId";
+
+
+  input.value =
+    scholarId;
+
+
+  form.appendChild(
+    input
+  );
+
+
+  document.body.appendChild(
+    form
+  );
+
+
+  form.submit();
+
+
+  /*
+    Show immediate detection.
+  */
+
+  setTimeout(
+    function() {
+
+      processing = false;
+
+
+      setResult(
+        "success",
+        "✓",
+        "QR Code Detected",
         scholarId
-        ?
-        "<div class='details'>" +
-        "<strong>Scholar ID:</strong> " +
-        escapeHtml(scholarId) +
-        "</div>"
-        :
-        ""
       );
 
-  }
 
+      /*
+        Prepare for next student.
+      */
 
-  // ==========================================================
-  // CLEAR RESULT
-  // ==========================================================
+      setTimeout(
+        function() {
 
-  function clearResult() {
+          clearResult();
 
-    const result =
-      document.getElementById(
-        "result"
+        },
+        1200
       );
 
-    result.className =
-      "";
-
-    result.innerHTML =
-      "";
-
-  }
+    },
+    700
+  );
 
 
-  // ==========================================================
-  // HTML ESCAPE
-  // ==========================================================
+  setTimeout(
+    function() {
 
-  function escapeHtml(
-    value
-  ) {
+      form.remove();
 
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+    },
+    3000
+  );
 
-  }
+}
+
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+function setStatus(
+  message
+) {
+
+  document
+    .getElementById(
+      "cameraStatus"
+    )
+    .textContent =
+    message;
+
+}
+
+
+/* ============================================================
+   RESULT
+   ============================================================ */
+
+function setResult(
+  type,
+  icon,
+  title,
+  scholarId
+) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.className =
+    "result " + type;
+
+
+  result.innerHTML =
+
+    "<div class='icon'>" +
+    icon +
+    "</div>" +
+
+    "<div class='result-title'>" +
+    escapeHtml(title) +
+    "</div>" +
+
+    (
+      scholarId
+      ?
+
+      "<div class='details'>" +
+      "<strong>Scholar ID:</strong><br>" +
+      escapeHtml(scholarId) +
+      "</div>"
+
+      :
+
+      ""
+    );
+
+}
+
+
+/* ============================================================
+   CLEAR RESULT
+   ============================================================ */
+
+function clearResult() {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.className =
+    "";
+
+
+  result.innerHTML =
+    "";
+
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+   ============================================================ */
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+
+    .replace(
+      /</g,
+      "&lt;"
+    )
+
+    .replace(
+      />/g,
+      "&gt;"
+    )
+
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
 
 </script>
 
 
-<!--
-  Hidden target used by the POST request.
--->
 <iframe
   name="attendanceFrame"
   style="display:none;">
@@ -701,4 +1059,5 @@
 
 
 </body>
+
 </html>
