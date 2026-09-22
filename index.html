@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>Scholar Attendance Camera</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 15px;
+      background: #f4f7fb;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111827;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 650px;
+      margin: auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+      margin-bottom: 15px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .header p {
+      margin: 7px 0 0;
+      color: #6b7280;
+    }
+
+    .camera-card {
+      background: white;
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+    }
+
+    .camera-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #111827;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #canvas {
+      display: none;
+    }
+
+    .scan-frame {
+      position: absolute;
+      width: 65%;
+      height: 65%;
+      left: 17.5%;
+      top: 17.5%;
+      border: 3px solid white;
+      border-radius: 18px;
+      pointer-events: none;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 5%;
+      width: 90%;
+      height: 2px;
+      background: white;
+      animation: scan 2s linear infinite;
+    }
+
+    @keyframes scan {
+
+      0% {
+        top: 10%;
+      }
+
+      50% {
+        top: 90%;
+      }
+
+      100% {
+        top: 10%;
+      }
+
+    }
+
+    .status {
+      text-align: center;
+      padding: 15px 5px;
+      font-size: 15px;
+      color: #6b7280;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    #startButton {
+      background: #111827;
+      color: white;
+    }
+
+    #stopButton {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .result {
+      margin-top: 15px;
+      padding: 18px;
+      border-radius: 14px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .success {
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #065f46;
+    }
+
+    .error {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .processing {
+      background: #eff6ff;
+      border: 2px solid #3b82f6;
+      color: #1e40af;
+    }
+
+    .name {
+      font-size: 20px;
+      margin-top: 6px;
+    }
+
+    .details {
+      font-size: 14px;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>📋 Scholar Attendance</h1>
+    <p>📷 Phone Camera QR Scanner</p>
+  </div>
+
+  <div class="camera-card">
+
+    <div class="camera-wrapper">
+
+      <video
+        id="video"
+        autoplay
+        muted
+        playsinline>
+      </video>
+
+      <canvas id="canvas"></canvas>
+
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+      </div>
+
+    </div>
+
+    <div id="cameraStatus" class="status">
+      Tap START CAMERA to begin.
+    </div>
+
+    <button
+      id="startButton"
+      onclick="startCamera()">
+      ▶ START CAMERA
+    </button>
+
+    <button
+      id="stopButton"
+      onclick="stopCamera()">
+      ■ STOP CAMERA
+    </button>
+
+    <div id="result"></div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  // ==========================================================
+  // YOUR APPS SCRIPT WEB APP URL
+  // ==========================================================
+
+  const APPS_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbyi6Cs53LZ-HajMXYFdF4R-bWAR2yfXV5vbhd9PgTm-dTGCMYSrp5dkDFNHyH-WHz9T/exec";
+
+
+  // ==========================================================
+  // VARIABLES
+  // ==========================================================
+
+  let video =
+    document.getElementById("video");
+
+  let canvas =
+    document.getElementById("canvas");
+
+  let context =
+    canvas.getContext("2d", {
+      willReadFrequently: true
+    });
+
+  let stream = null;
+
+  let scanning = false;
+
+  let processing = false;
+
+  let lastCode = "";
+
+  let lastScanTime = 0;
+
+
+  // ==========================================================
+  // START CAMERA
+  // ==========================================================
+
+  async function startCamera() {
+
+    if (scanning) {
+      return;
+    }
+
+    setStatus(
+      "Requesting camera permission..."
+    );
+
+    try {
+
+      if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+      ) {
+
+        throw new Error(
+          "Camera access is not supported by this browser."
+        );
+
+      }
+
+      stream =
+        await navigator.mediaDevices.getUserMedia({
+
+          video: {
+            facingMode: {
+              ideal: "environment"
+            },
+            width: {
+              ideal: 1280
+            },
+            height: {
+              ideal: 720
+            }
+          },
+
+          audio: false
+
+        });
+
+
+      video.srcObject = stream;
+
+      await video.play();
+
+      scanning = true;
+
+      setStatus(
+        "Camera active. Point the camera at a Scholar QR Code."
+      );
+
+      scanFrame();
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      if (error.name === "NotAllowedError") {
+
+        setStatus(
+          "Camera permission was denied. Please allow camera access and try again."
+        );
+
+      }
+
+      else if (error.name === "NotFoundError") {
+
+        setStatus(
+          "No camera was found."
+        );
+
+      }
+
+      else {
+
+        setStatus(
+          "Camera error: " +
+          error.message
+        );
+
+      }
+
+    }
+
+  }
+
+
+  // ==========================================================
+  // STOP CAMERA
+  // ==========================================================
+
+  function stopCamera() {
+
+    scanning = false;
+
+    if (stream) {
+
+      stream.getTracks().forEach(
+        track => track.stop()
+      );
+
+      stream = null;
+
+    }
+
+    video.srcObject = null;
+
+    setStatus(
+      "Camera stopped."
+    );
+
+  }
+
+
+  // ==========================================================
+  // SCAN CAMERA
+  // ==========================================================
+
+  function scanFrame() {
+
+    if (!scanning) {
+      return;
+    }
+
+    if (
+      video.readyState >= 2 &&
+      video.videoWidth > 0 &&
+      video.videoHeight > 0
+    ) {
+
+      canvas.width =
+        video.videoWidth;
+
+      canvas.height =
+        video.videoHeight;
+
+      context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const imageData =
+        context.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+
+      const qr =
+        jsQR(
+          imageData.data,
+          imageData.width,
+          imageData.height,
+          {
+            inversionAttempts: "attemptBoth"
+          }
+        );
+
+
+      if (qr && qr.data) {
+
+        const scholarId =
+          String(qr.data).trim();
+
+        const now =
+          Date.now();
+
+
+        if (
+          scholarId &&
+          (
+            scholarId !== lastCode ||
+            now - lastScanTime > 3000
+          )
+        ) {
+
+          lastCode = scholarId;
+
+          lastScanTime = now;
+
+          processScholar(
+            scholarId
+          );
+
+        }
+
+      }
+
+    }
+
+    requestAnimationFrame(
+      scanFrame
+    );
+
+  }
+
+
+  // ==========================================================
+  // SEND SCHOLAR ID TO APPS SCRIPT
+  // ==========================================================
+
+  function processScholar(
+    scholarId
+  ) {
+
+    if (processing) {
+      return;
+    }
+
+    processing = true;
+
+    setResult(
+      "processing",
+      "⏳",
+      "Recording attendance...",
+      scholarId
+    );
+
+
+    /*
+      IMPORTANT:
+
+      We use a hidden form submission rather than fetch().
+      This avoids browser CORS restrictions when sending
+      the scanned ID to Apps Script.
+    */
+
+    const form =
+      document.createElement("form");
+
+    form.method = "POST";
+
+    form.action =
+      APPS_SCRIPT_URL;
+
+    form.target =
+      "attendanceFrame";
+
+    form.style.display =
+      "none";
+
+
+    const input =
+      document.createElement("input");
+
+    input.type = "hidden";
+
+    input.name =
+      "scholarId";
+
+    input.value =
+      scholarId;
+
+
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+
+
+    form.submit();
+
+
+    /*
+      The Apps Script server receives the Scholar ID.
+
+      We give the server a moment to process it,
+      then prepare for the next QR scan.
+    */
+
+    setTimeout(
+      function() {
+
+        processing = false;
+
+        setResult(
+          "success",
+          "✓",
+          "Attendance submitted",
+          scholarId
+        );
+
+        setTimeout(
+          function() {
+
+            clearResult();
+
+          },
+          1200
+        );
+
+      },
+      900
+    );
+
+
+    setTimeout(
+      function() {
+
+        form.remove();
+
+      },
+      3000
+    );
+
+  }
+
+
+  // ==========================================================
+  // STATUS
+  // ==========================================================
+
+  function setStatus(
+    message
+  ) {
+
+    document
+      .getElementById(
+        "cameraStatus"
+      )
+      .textContent =
+      message;
+
+  }
+
+
+  // ==========================================================
+  // RESULT
+  // ==========================================================
+
+  function setResult(
+    type,
+    icon,
+    message,
+    scholarId
+  ) {
+
+    const result =
+      document.getElementById(
+        "result"
+      );
+
+    result.className =
+      "result " + type;
+
+    result.innerHTML =
+
+      "<div style='font-size:32px'>" +
+      icon +
+      "</div>" +
+
+      "<div>" +
+      escapeHtml(message) +
+      "</div>" +
+
+      (
+        scholarId
+        ?
+        "<div class='details'>" +
+        "<strong>Scholar ID:</strong> " +
+        escapeHtml(scholarId) +
+        "</div>"
+        :
+        ""
+      );
+
+  }
+
+
+  // ==========================================================
+  // CLEAR RESULT
+  // ==========================================================
+
+  function clearResult() {
+
+    const result =
+      document.getElementById(
+        "result"
+      );
+
+    result.className =
+      "";
+
+    result.innerHTML =
+      "";
+
+  }
+
+
+  // ==========================================================
+  // HTML ESCAPE
+  // ==========================================================
+
+  function escapeHtml(
+    value
+  ) {
+
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+</script>
+
+
+<!--
+  Hidden target used by the POST request.
+-->
+<iframe
+  name="attendanceFrame"
+  style="display:none;">
+</iframe>
+
+
+</body>
+</html>
