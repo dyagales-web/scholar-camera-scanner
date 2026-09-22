@@ -1149,3 +1149,17 @@ function escapeHtml(
 </body>
 
 </html>
+
+// ============================================================
+// AUTOMATICALLY START CAMERA WHEN PAGE LOADS
+// ============================================================
+
+window.addEventListener("load", function () {
+
+  setTimeout(function () {
+
+    startCamera();
+
+  }, 500);
+
+});
