@@ -797,9 +797,97 @@ function handleDetectedQR(
    SEND TO APPS SCRIPT
    ============================================================ */
 
-function processScholar(
-  scholarId
-) {
+function processScholar(scholarId) {
+
+  if (processing) {
+    return;
+  }
+
+  processing = true;
+
+  setResult(
+    "processing",
+    "⏳",
+    "Recording attendance...",
+    scholarId
+  );
+
+
+  /*
+   * Send the Scholar ID to Apps Script.
+   *
+   * We use a hidden iframe because this works across
+   * the GitHub Pages → Apps Script domains without
+   * requiring CORS configuration.
+   */
+
+  const requestFrame =
+    document.createElement("iframe");
+
+  requestFrame.style.display = "none";
+
+  requestFrame.name =
+    "attendanceRequest_" + Date.now();
+
+  document.body.appendChild(
+    requestFrame
+  );
+
+
+  const requestUrl =
+    APPS_SCRIPT_URL +
+    "?action=attendance" +
+    "&scholarId=" +
+    encodeURIComponent(scholarId);
+
+
+  requestFrame.src =
+    requestUrl;
+
+
+  /*
+   * Give Apps Script time to execute
+   * recordAttendance().
+   */
+
+  setTimeout(function() {
+
+    processing = false;
+
+
+    setResult(
+      "success",
+      "✓",
+      "Attendance Recorded",
+      scholarId
+    );
+
+
+    /*
+     * Prepare for the next student.
+     */
+
+    setTimeout(function() {
+
+      clearResult();
+
+    }, 1200);
+
+
+  }, 1200);
+
+
+  /*
+   * Remove the temporary iframe.
+   */
+
+  setTimeout(function() {
+
+    requestFrame.remove();
+
+  }, 5000);
+
+}
 
   if (processing) {
     return;
